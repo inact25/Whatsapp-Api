@@ -1,6 +1,10 @@
 package user
 
-import "go.mau.fi/whatsmeow/types"
+import (
+	"mime/multipart"
+
+	"go.mau.fi/whatsmeow/types"
+)
 
 type InfoRequest struct {
 	Phone string `json:"phone" query:"phone"`
@@ -51,4 +55,21 @@ type MyListGroupsResponse struct {
 
 type MyListNewsletterResponse struct {
 	Data []types.NewsletterMetadata `json:"data"`
+}
+
+type ChangeAvatarRequest struct {
+	Avatar *multipart.FileHeader `json:"avatar" form:"avatar"`
+}
+
+type MyListContactsResponse struct {
+	Data []MyListContactsResponseData `json:"data"`
+}
+
+type MyListContactsResponseData struct {
+	JID  types.JID `json:"jid"`
+	Name string    `json:"name"`
+}
+
+type ChangePushNameRequest struct {
+	PushName string `json:"push_name" form:"push_name"`
 }

@@ -12,11 +12,28 @@ export default {
             latitude: '',
             longitude: '',
             loading: false,
+            is_forwarded: false
         }
     },
     computed: {
         phone_id() {
             return this.phone + this.type;
+        },
+        isValidForm() {
+            // Validate phone number is not empty except for status type
+            const isPhoneValid = this.type === window.TYPESTATUS || this.phone.trim().length > 0;
+            
+            // Validate latitude is between -90 and 90
+            const isLatitudeValid = !isNaN(this.latitude) && 
+                                  parseFloat(this.latitude) >= -90 && 
+                                  parseFloat(this.latitude) <= 90;
+            
+            // Validate longitude is between -180 and 180
+            const isLongitudeValid = !isNaN(this.longitude) && 
+                                   parseFloat(this.longitude) >= -180 && 
+                                   parseFloat(this.longitude) <= 180;
+
+            return isPhoneValid && isLatitudeValid && isLongitudeValid;
         }
     },
     methods: {
@@ -26,6 +43,9 @@ export default {
                     return false;
                 }
             }).modal('show');
+        },
+        isShowAttributes() {
+            return this.type !== window.TYPESTATUS;
         },
         async handleSubmit() {
             try {
@@ -42,7 +62,8 @@ export default {
                 const payload = {
                     phone: this.phone_id,
                     latitude: this.latitude,
-                    longitude: this.longitude
+                    longitude: this.longitude,
+                    is_forwarded: this.is_forwarded
                 };
 
                 const response = await window.http.post(`/send/location`, payload);
@@ -62,6 +83,7 @@ export default {
             this.latitude = '';
             this.longitude = '';
             this.type = window.TYPEUSER;
+            this.is_forwarded = false;
         },
     },
     template: `
@@ -87,22 +109,29 @@ export default {
                 
                 <div class="field">
                     <label>Location Latitude</label>
-                    <input v-model="latitude" type="text" placeholder="Please enter latitude"
+                    <input v-model="latitude" type="text" placeholder="Please enter latitude (-90 to 90)"
                            aria-label="latitude">
                 </div>
                 <div class="field">
                     <label>Location Longitude</label>
-                    <input v-model="longitude" type="text" placeholder="Please enter longitude"
+                    <input v-model="longitude" type="text" placeholder="Please enter longitude (-180 to 180)"
                            aria-label="longitude">
+                </div>
+                <div class="field" v-if="isShowAttributes()">
+                    <label>Is Forwarded</label>
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" aria-label="is forwarded" v-model="is_forwarded">
+                        <label>Mark location as forwarded</label>
+                    </div>
                 </div>
             </form>
         </div>
         <div class="actions">
-            <div class="ui approve positive right labeled icon button" :class="{'loading': this.loading}"
-                 @click="handleSubmit">
+            <button class="ui approve positive right labeled icon button" :class="{'loading': this.loading}" 
+                 @click="handleSubmit" :disabled="!isValidForm">
                 Send
                 <i class="send icon"></i>
-            </div>
+            </button>
         </div>
     </div>
     `

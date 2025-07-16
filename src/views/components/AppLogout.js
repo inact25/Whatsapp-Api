@@ -15,7 +15,7 @@ export default {
 
         async submitApi() {
             try {
-                await http.get(`/app/logout`)
+                await http.get(`app/logout`)
             } catch (error) {
                 if (error.response) {
                     throw Error(error.response.data.message)
@@ -28,6 +28,7 @@ export default {
     template: `
     <div class="green card" @click="handleSubmit" style="cursor: pointer">
         <div class="content">
+            <a class="ui teal right ribbon label">App</a>
             <div class="header">Logout</div>
             <div class="description">
                 Remove your login session in application

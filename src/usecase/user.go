@@ -1,29 +1,34 @@
-package services
+package usecase
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	domainUser "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/user"
-	pkgError "github.com/aldinokemal/go-whatsapp-web-multidevice/pkg/error"
-	"github.com/aldinokemal/go-whatsapp-web-multidevice/pkg/whatsapp"
-	"github.com/aldinokemal/go-whatsapp-web-multidevice/validations"
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/types"
+	"image"
 	"time"
+
+	domainUser "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/user"
+	"github.com/aldinokemal/go-whatsapp-web-multidevice/infrastructure/whatsapp"
+	pkgError "github.com/aldinokemal/go-whatsapp-web-multidevice/pkg/error"
+	"github.com/aldinokemal/go-whatsapp-web-multidevice/validations"
+	"github.com/disintegration/imaging"
+	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
+	"go.mau.fi/whatsmeow/types"
 )
 
-type userService struct {
+type serviceUser struct {
 	WaCli *whatsmeow.Client
 }
 
-func NewUserService(waCli *whatsmeow.Client) domainUser.IUserService {
-	return &userService{
+func NewUserService(waCli *whatsmeow.Client) domainUser.IUserUsecase {
+	return &serviceUser{
 		WaCli: waCli,
 	}
 }
 
-func (service userService) Info(ctx context.Context, request domainUser.InfoRequest) (response domainUser.InfoResponse, err error) {
+func (service serviceUser) Info(ctx context.Context, request domainUser.InfoRequest) (response domainUser.InfoResponse, err error) {
 	err = validations.ValidateUserInfo(ctx, request)
 	if err != nil {
 		return response, err
@@ -66,7 +71,7 @@ func (service userService) Info(ctx context.Context, request domainUser.InfoRequ
 	return response, nil
 }
 
-func (service userService) Avatar(ctx context.Context, request domainUser.AvatarRequest) (response domainUser.AvatarResponse, err error) {
+func (service serviceUser) Avatar(ctx context.Context, request domainUser.AvatarRequest) (response domainUser.AvatarResponse, err error) {
 
 	chanResp := make(chan domainUser.AvatarResponse)
 	chanErr := make(chan error)
@@ -113,7 +118,7 @@ func (service userService) Avatar(ctx context.Context, request domainUser.Avatar
 
 }
 
-func (service userService) MyListGroups(_ context.Context) (response domainUser.MyListGroupsResponse, err error) {
+func (service serviceUser) MyListGroups(_ context.Context) (response domainUser.MyListGroupsResponse, err error) {
 	whatsapp.MustLogin(service.WaCli)
 
 	groups, err := service.WaCli.GetJoinedGroups()
@@ -127,7 +132,7 @@ func (service userService) MyListGroups(_ context.Context) (response domainUser.
 	return response, nil
 }
 
-func (service userService) MyListNewsletter(_ context.Context) (response domainUser.MyListNewsletterResponse, err error) {
+func (service serviceUser) MyListNewsletter(_ context.Context) (response domainUser.MyListNewsletterResponse, err error) {
 	whatsapp.MustLogin(service.WaCli)
 
 	datas, err := service.WaCli.GetSubscribedNewsletters()
@@ -141,10 +146,10 @@ func (service userService) MyListNewsletter(_ context.Context) (response domainU
 	return response, nil
 }
 
-func (service userService) MyPrivacySetting(_ context.Context) (response domainUser.MyPrivacySettingResponse, err error) {
+func (service serviceUser) MyPrivacySetting(ctx context.Context) (response domainUser.MyPrivacySettingResponse, err error) {
 	whatsapp.MustLogin(service.WaCli)
 
-	resp, err := service.WaCli.TryFetchPrivacySettings(true)
+	resp, err := service.WaCli.TryFetchPrivacySettings(ctx, true)
 	if err != nil {
 		return
 	}
@@ -154,4 +159,86 @@ func (service userService) MyPrivacySetting(_ context.Context) (response domainU
 	response.ReadReceipts = string(resp.ReadReceipts)
 	response.Profile = string(resp.Profile)
 	return response, nil
+}
+
+func (service serviceUser) MyListContacts(ctx context.Context) (response domainUser.MyListContactsResponse, err error) {
+	whatsapp.MustLogin(service.WaCli)
+
+	contacts, err := service.WaCli.Store.Contacts.GetAllContacts(ctx)
+	if err != nil {
+		return
+	}
+
+	for jid, contact := range contacts {
+		response.Data = append(response.Data, domainUser.MyListContactsResponseData{
+			JID:  jid,
+			Name: contact.FullName,
+		})
+	}
+
+	return response, nil
+}
+
+func (service serviceUser) ChangeAvatar(ctx context.Context, request domainUser.ChangeAvatarRequest) (err error) {
+	whatsapp.MustLogin(service.WaCli)
+
+	file, err := request.Avatar.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Read original image
+	srcImage, err := imaging.Decode(file)
+	if err != nil {
+		return fmt.Errorf("failed to decode image: %v", err)
+	}
+
+	// Get original dimensions
+	bounds := srcImage.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	// Calculate new dimensions for 1:1 aspect ratio
+	size := width
+	if height < width {
+		size = height
+	}
+	if size > 640 {
+		size = 640
+	}
+
+	// Create a square crop from the center
+	left := (width - size) / 2
+	top := (height - size) / 2
+	croppedImage := imaging.Crop(srcImage, image.Rect(left, top, left+size, top+size))
+
+	// Resize if needed
+	if size > 640 {
+		croppedImage = imaging.Resize(croppedImage, 640, 640, imaging.Lanczos)
+	}
+
+	// Convert to bytes
+	var buf bytes.Buffer
+	err = imaging.Encode(&buf, croppedImage, imaging.JPEG, imaging.JPEGQuality(80))
+	if err != nil {
+		return fmt.Errorf("failed to encode image: %v", err)
+	}
+
+	_, err = service.WaCli.SetGroupPhoto(types.JID{}, buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (service serviceUser) ChangePushName(ctx context.Context, request domainUser.ChangePushNameRequest) (err error) {
+	whatsapp.MustLogin(service.WaCli)
+
+	err = service.WaCli.SendAppState(ctx, appstate.BuildSettingPushName(request.PushName))
+	if err != nil {
+		return err
+	}
+	return nil
 }

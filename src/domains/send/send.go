@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type ISendService interface {
+type ISendUsecase interface {
 	SendText(ctx context.Context, request MessageRequest) (response GenericResponse, err error)
 	SendImage(ctx context.Context, request ImageRequest) (response GenericResponse, err error)
 	SendFile(ctx context.Context, request FileRequest) (response GenericResponse, err error)
@@ -14,6 +14,7 @@ type ISendService interface {
 	SendLocation(ctx context.Context, request LocationRequest) (response GenericResponse, err error)
 	SendAudio(ctx context.Context, request AudioRequest) (response GenericResponse, err error)
 	SendPoll(ctx context.Context, request PollRequest) (response GenericResponse, err error)
+	SendPresence(ctx context.Context, request PresenceRequest) (response GenericResponse, err error)
 }
 
 type GenericResponse struct {

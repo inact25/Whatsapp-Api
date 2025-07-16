@@ -1,11 +1,12 @@
-package services
+package usecase
 
 import (
 	"context"
 	"fmt"
-	"github.com/aldinokemal/go-whatsapp-web-multidevice/domains/message"
+	"time"
+
 	domainMessage "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/message"
-	"github.com/aldinokemal/go-whatsapp-web-multidevice/pkg/whatsapp"
+	"github.com/aldinokemal/go-whatsapp-web-multidevice/infrastructure/whatsapp"
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/validations"
 	"github.com/sirupsen/logrus"
 	"go.mau.fi/whatsmeow"
@@ -15,14 +16,13 @@ import (
 	"go.mau.fi/whatsmeow/proto/waSyncAction"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
-	"time"
 )
 
 type serviceMessage struct {
 	WaCli *whatsmeow.Client
 }
 
-func NewMessageService(waCli *whatsmeow.Client) domainMessage.IMessageService {
+func NewMessageService(waCli *whatsmeow.Client) domainMessage.IMessageUsecase {
 	return &serviceMessage{
 		WaCli: waCli,
 	}
@@ -54,7 +54,7 @@ func (service serviceMessage) MarkAsRead(ctx context.Context, request domainMess
 	return response, nil
 }
 
-func (service serviceMessage) ReactMessage(ctx context.Context, request message.ReactionRequest) (response message.GenericResponse, err error) {
+func (service serviceMessage) ReactMessage(ctx context.Context, request domainMessage.ReactionRequest) (response domainMessage.GenericResponse, err error) {
 	if err = validations.ValidateReactMessage(ctx, request); err != nil {
 		return response, err
 	}
@@ -131,7 +131,7 @@ func (service serviceMessage) DeleteMessage(ctx context.Context, request domainM
 		}},
 	}
 
-	if err = service.WaCli.SendAppState(patchInfo); err != nil {
+	if err = service.WaCli.SendAppState(ctx, patchInfo); err != nil {
 		return err
 	}
 	return nil
@@ -156,4 +156,28 @@ func (service serviceMessage) UpdateMessage(ctx context.Context, request domainM
 	response.MessageID = ts.ID
 	response.Status = fmt.Sprintf("Update message success %s (server timestamp: %s)", request.Phone, ts.Timestamp)
 	return response, nil
+}
+
+// StarMessage implements message.IMessageService.
+func (service serviceMessage) StarMessage(ctx context.Context, request domainMessage.StarRequest) (err error) {
+	if err = validations.ValidateStarMessage(ctx, request); err != nil {
+		return err
+	}
+
+	dataWaRecipient, err := whatsapp.ValidateJidWithLogin(service.WaCli, request.Phone)
+	if err != nil {
+		return err
+	}
+
+	isFromMe := true
+	if len(request.MessageID) > 22 {
+		isFromMe = false
+	}
+
+	patchInfo := appstate.BuildStar(dataWaRecipient.ToNonAD(), *service.WaCli.Store.ID, request.MessageID, isFromMe, request.IsStarred)
+
+	if err = service.WaCli.SendAppState(ctx, patchInfo); err != nil {
+		return err
+	}
+	return nil
 }

@@ -26,7 +26,7 @@ export default {
         },
         async submitApi() {
             try {
-                let response = await window.http.get(`/app/login`)
+                let response = await window.http.get(`app/login`)
                 let results = response.data.results;
                 this.login_link = results.qr_link;
                 this.login_duration_sec = results.qr_duration;
@@ -41,6 +41,7 @@ export default {
     template: `
     <div class="green card" @click="openModal" style="cursor: pointer">
         <div class="content">
+            <a class="ui teal right ribbon label">App</a>
             <div class="header">Login</div>
             <div class="description">
                 Scan your QR code to access all API capabilities.
