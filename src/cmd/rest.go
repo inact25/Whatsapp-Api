@@ -109,7 +109,7 @@ func restServer(_ *cobra.Command, _ []string) {
 		go helpers.StartAutoFlushChatStorage()
 	}
 
-	if err := app.Listen(":" + config.AppPort); err != nil {
+	if err := app.Listen("0.0.0.0:" + config.AppPort); err != nil {
 		log.Fatalln("Failed to start: ", err.Error())
 	}
 }
