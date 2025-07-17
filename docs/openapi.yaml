@@ -135,7 +135,7 @@ paths:
           in: query
           schema:
             type: string
-          example: '6289685028129@s.whatsapp.net'
+          example: '6281213701084@s.whatsapp.net'
           description: Phone number with country code
       responses:
         '200':
@@ -167,7 +167,7 @@ paths:
           in: query
           schema:
             type: string
-          example: '6289685028129@s.whatsapp.net'
+          example: '6281213701084@s.whatsapp.net'
           description: Phone number with country code
         - name: is_preview
           in: query
@@ -342,7 +342,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorInternalServer'
-  
+
   /send/message:
     post:
       operationId: sendMessage
@@ -357,7 +357,7 @@ paths:
               properties:
                 phone:
                   type: string
-                  example: '6289685028129@s.whatsapp.net'
+                  example: '6281213701084@s.whatsapp.net'
                   description: Phone number with country code
                 message:
                   type: string
@@ -400,7 +400,7 @@ paths:
               properties:
                 phone:
                   type: string
-                  example: '6289685028129@s.whatsapp.net'
+                  example: '6281213701084@s.whatsapp.net'
                   description: Phone number with country code
                 caption:
                   type: string
@@ -455,7 +455,7 @@ paths:
               properties:
                 phone:
                   type: string
-                  example: '6289685028129@s.whatsapp.net'
+                  example: '6281213701084@s.whatsapp.net'
                   description: Phone number with country code
                 audio:
                   type: string
@@ -494,7 +494,7 @@ paths:
               properties:
                 phone:
                   type: string
-                  example: '6289685028129@s.whatsapp.net'
+                  example: '6281213701084@s.whatsapp.net'
                   description: Phone number with country code
                 caption:
                   type: string
@@ -537,7 +537,7 @@ paths:
               properties:
                 phone:
                   type: string
-                  example: '6289685028129@s.whatsapp.net'
+                  example: '6281213701084@s.whatsapp.net'
                   description: Phone number with country code
                 caption:
                   type: string
@@ -1979,7 +1979,7 @@ components:
         AddRequest:
           type: string
           example: null
-    
+
     GroupParticipantRequestListResponse:
       type: object
       properties:
