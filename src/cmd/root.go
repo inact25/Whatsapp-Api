@@ -47,13 +47,13 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Short: "Send free whatsapp API",
-	Long: `This application is from clone https://github.com/aldinokemal/go-whatsapp-web-multidevice, 
+	Long: `This application is from clone https://github.com/aldinokemal/go-whatsapp-web-multidevice,
 you can send whatsapp over http api but your whatsapp account have to be multi device version`,
 }
 
 func init() {
 	// Load environment variables first
-	utils.LoadConfig(".")
+	utils.LoadConfig("../")
 
 	time.Local = time.UTC
 
